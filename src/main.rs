@@ -81,7 +81,7 @@ impl Token {
     fn unsigned_number(value: &str) -> Token {
         Token {
             token_type: TokenType::UnsignedNumber,
-            content: value.to_string(),
+            content: value.parse::<i32>().unwrap().to_string(),
         }
     }
 
@@ -241,6 +241,20 @@ mod test_pascal_lex {
         assert_eq!(iter.next().unwrap().to_string(), "Ident(a2)");
         assert_eq!(iter.next().unwrap().to_string(), "Int(1)");
         assert_eq!(iter.next().unwrap().to_string(), "Ident(a)");
+
+        match iter.next() {
+            None => assert!(true),
+            _ => assert!(false),
+        }
+    }
+
+    #[test]
+    fn test_front_zero() {
+        let c = Content { content: "00000001 00000000 10000000" };
+        let mut iter: TokenIterator = c.into_iter();
+        assert_eq!(iter.next().unwrap().to_string(), "Int(1)");
+        assert_eq!(iter.next().unwrap().to_string(), "Int(0)");
+        assert_eq!(iter.next().unwrap().to_string(), "Int(10000000)");
 
         match iter.next() {
             None => assert!(true),
