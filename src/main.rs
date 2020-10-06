@@ -1,5 +1,8 @@
+use std::env::args;
+
 fn main() {
-    let c = Content { content: "1a" };
+    let input: Vec<String> = args().collect();
+    let c = Content { content: &input[1] };
     for i in c {
         println!("{}", i.to_string());
         match i.token_type {
