@@ -1,8 +1,10 @@
 use std::env::args;
+use std::fs;
 
 fn main() {
     let input: Vec<String> = args().collect();
-    let c = Content { content: &input[1] };
+    let contents = fs::read_to_string(&input[1]).unwrap();
+    let c = Content { content: &contents };
     for i in c {
         println!("{}", i.to_string());
         match i.token_type {

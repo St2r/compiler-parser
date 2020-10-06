@@ -1,5 +1,5 @@
 [package]
-name = "St2rCompiler"
+name = "st2r-compiler"
 version = "0.1.0"
 authors = ["St2r <St2r@github.com>"]
 edition = "2018"
