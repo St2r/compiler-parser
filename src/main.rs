@@ -1,14 +1,7 @@
-use std::env;
-use std::path::Iter;
-use std::fmt::{Display, Formatter, Error, Result};
-use std::str::Chars;
-use std::borrow::Borrow;
-use crate::TokenType::Unknown;
-
 fn main() {
-    let mut c = Content { content: "a1 a1 a1" };
+    let c = Content { content: "1a" };
     for i in c {
-        println!("{}", i);
+        println!("{}", i.to_string());
         match i.token_type {
             TokenType::Unknown => { break; }
             _ => {}
@@ -47,6 +40,7 @@ struct TokenIterator {
     token: String,
 }
 
+// #[derive(Debug)]
 struct Token {
     token_type: TokenType,
     content: String,
@@ -67,6 +61,18 @@ impl Token {
         }
     }
 
+    fn keyword_or_identify(value: &str) -> Token {
+        return match value {
+            "BEGIN" => Token::keyword("Begin"),
+            "END" => Token::keyword("End"),
+            "FOR" => Token::keyword("For"),
+            "IF" => Token::keyword("If"),
+            "THEN" => Token::keyword("Then"),
+            "ELSE" => Token::keyword("Else"),
+            _ => Token::identify(value),
+        }
+    }
+
     fn unsigned_number(value: &str) -> Token {
         Token {
             token_type: TokenType::UnsignedNumber,
@@ -82,23 +88,23 @@ impl Token {
     }
 }
 
-impl Display for Token {
-    fn fmt(&self, f: &mut Formatter) -> Result {
+impl Token {
+    fn to_string(&self) -> String {
         match self.token_type {
             TokenType::Identify => {
-                write!(f, "Ident({})", self.content)
+                format!("Ident({})", self.content)
             }
             TokenType::Keyword => {
-                write!(f, "{}", self.content)
+                format!("{}", self.content)
             }
             TokenType::UnsignedNumber => {
-                write!(f, "Int{}", self.content)
+                format!("Int({})", self.content)
             }
             TokenType::Delimiter => {
-                write!(f, "{}", self.content)
+                format!("{}", self.content)
             }
             TokenType::Unknown => {
-                write!(f, "Unknown")
+                format!("Unknown")
             }
         }
     }
@@ -123,45 +129,34 @@ impl<'a> Iterator for TokenIterator {
             while ch.is_alphanumeric() {
                 self.token.push(ch);
                 if self.cur_index == self.chars.len() {
-                    break;
+                    return Some(Token::keyword_or_identify(&self.token))
                 } else {
                     ch = self.chars[self.cur_index];
                     self.cur_index += 1;
                 }
             }
-            if self.cur_index != self.chars.len() {
-                self.cur_index -= 1;
-            }
 
-            match self.token.as_str() {
-                "BEGIN" => Some(Token::keyword("Begin")),
-                "END" => Some(Token::keyword("End")),
-                "FOR" => Some(Token::keyword("For")),
-                "IF" => Some(Token::keyword("If")),
-                "THEN" => Some(Token::keyword("Then")),
-                "ELSE" => Some(Token::keyword("Else")),
-                _ => Some(Token::identify(&self.token)),
-            }
+            self.cur_index -= 1;
+
+           Some(Token::keyword_or_identify(&self.token))
         } else if ch.is_ascii_digit() {
             while ch.is_ascii_digit() {
                 self.token.push(ch);
                 if self.cur_index == self.chars.len() {
-                    break;
+                    return Some(Token::unsigned_number(&self.token))
                 } else {
                     ch = self.chars[self.cur_index];
                     self.cur_index += 1;
                 }
             }
-            if self.cur_index != self.chars.len() {
-                self.cur_index -= 1;
-            }
+            self.cur_index -= 1;
 
             return Some(Token::unsigned_number(&self.token));
         } else if ch == ':' {
             if self.cur_index == self.chars.len() {
                 Some(Token::delimiter("Colon"))
             } else {
-                ch == self.chars[self.cur_index];
+                ch = self.chars[self.cur_index];
                 self.cur_index += 1;
                 match ch {
                     '=' => Some(Token::delimiter("Assign")),
@@ -199,10 +194,52 @@ impl<'a> Iterator for TokenIterator {
                 })
             }
         };
+    }
+}
 
-        Some(Token {
-            token_type: TokenType::Identify,
-            content: self.token.clone(),
-        })
+#[cfg(test)]
+mod test_pascal_lex {
+    use crate::*;
+
+    #[test]
+    fn test1() {
+        let c = Content { content: "a1 a1 a1" };
+        let mut iter: TokenIterator = c.into_iter();
+        assert_eq!(iter.next().unwrap().to_string(), "Ident(a1)");
+        assert_eq!(iter.next().unwrap().to_string(), "Ident(a1)");
+        assert_eq!(iter.next().unwrap().to_string(), "Ident(a1)");
+
+        match iter.next() {
+            None => assert!(true),
+            _ => assert!(false),
+        }
+    }
+
+    #[test]
+    fn test2() {
+        let c = Content { content: ":= a2" };
+        let mut iter: TokenIterator = c.into_iter();
+        assert_eq!(iter.next().unwrap().to_string(), "Assign");
+        assert_eq!(iter.next().unwrap().to_string(), "Ident(a2)");
+
+        match iter.next() {
+            None => assert!(true),
+            _ => assert!(false),
+        }
+    }
+
+    #[test]
+    fn test3() {
+        let c = Content { content: ":= a2 1a" };
+        let mut iter: TokenIterator = c.into_iter();
+        assert_eq!(iter.next().unwrap().to_string(), "Assign");
+        assert_eq!(iter.next().unwrap().to_string(), "Ident(a2)");
+        assert_eq!(iter.next().unwrap().to_string(), "Int(1)");
+        assert_eq!(iter.next().unwrap().to_string(), "Ident(a)");
+
+        match iter.next() {
+            None => assert!(true),
+            _ => assert!(false),
+        }
     }
 }
