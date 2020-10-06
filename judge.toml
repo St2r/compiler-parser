@@ -3,5 +3,5 @@
 image = { source = "dockerfile", path = ".", tag = "pascal-lex-st2r" }
 
 run = [
-    "./target/release/St2rCompiler $input",
+    "./target/release/st2r-compiler $input",
 ]
